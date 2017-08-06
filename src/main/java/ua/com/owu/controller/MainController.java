@@ -7,6 +7,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +16,8 @@ import ua.com.owu.entity.Product;
 import ua.com.owu.entity.User;
 import ua.com.owu.service.CategoryService;
 import ua.com.owu.service.UserService;
+//import ua.com.owu.service.editors.UserEditor;
+import ua.com.owu.validators.ProductValidator;
 import ua.com.owu.validators.UserValidator;
 
 import javax.servlet.http.HttpServletRequest;
@@ -30,6 +33,17 @@ public class MainController {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private CategoryService categoryService;
+    @Autowired
+    private UserValidator userValidator;
+
+    @ModelAttribute("emptyUser")
+    public User emptyUser() {
+        return new User();
+    }
+
+
+    @Autowired
+    private ProductValidator productValidator;
 
     @GetMapping("/")
     public String index() {
@@ -59,25 +73,18 @@ public class MainController {
         return "adminPage";
     }
 
-   @InitBinder("emptyUser")
-public void binder(WebDataBinder dataBinder) {
-    dataBinder.registerCustomEditor(User.class, userEditor);
-    dataBinder.addValidators(productValidator);
+    @InitBinder("emptyUser")
+    public void binder(WebDataBinder dataBinder) {
+//        dataBinder.registerCustomEditor(User.class, userEditor);
+        dataBinder.addValidators(userValidator);
+    }
 
     @PostMapping("/saveUser")
-    public String saveUser(@Validated @RequestParam String username,
-                           @RequestParam String password,
-                           @RequestParam String email,
-                           @RequestParam String phonenumber) {
-
-
-        User user = new User();
-        user.setPassword(passwordEncoder.encode(password));
-        user.setUsername(username);
-        user.setEmail(email);
-        user.setPhonenumber(phonenumber);
-
-        userService.save(user);
+    public String saveUser(@ModelAttribute("emptyUser") @Validated User emptyUser, BindingResult result) {
+        if (result.hasErrors()) {
+            return "index";
+        }
+        userService.save(emptyUser);
         return "index";
     }
 
